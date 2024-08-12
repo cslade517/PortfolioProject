@@ -1,0 +1,366 @@
+---
+title: "QMM1002 Case Study  2 [20%]"
+author: "Christine Slade (A00270458)"
+date: 'Due: April 18, 2024 at 11:59PM'
+output:
+  rmdformats::downcute:
+    downcute_theme: "default"
+---
+## **<span style="color: #4169E1;">Introduction</span>**
+
+For this case study, I will be using two sources of data, individual and aggregated data for hours spent studying. 
+
+The first source is personalized data I collected over two different semesters, January 9, 2023 to April 10, 2023 (W23) and January 8, 2024 to April 8, 2024 (W24). I have collected this time series data to track the various activities I perform in my daily routine. Both quantitative and categorical variables were used for collecting the data. I collected data on 10 variables. Details of the types of variables collected for my personalized data set along with the level and format are listed in the table below.
+
+**Variable** | **Type** | **Level of Measure** | **Format**
+:--- | :--- | :--- | :---
+<u>Date</u> | <u>Identifier</u> | <u>Interval</u> | <u>mm/dd/yyyy</u>
+Class Time  | Quantitative | Ratio | Hours
+Study Time  | Quantitative | Ratio | Hours
+Sleep Time  | Quantitative | Ratio | Hours
+Times Leaving the House | Quantitative | Ratio | Number Count
+Watching the News | Categorical | Nominal | Yes/No
+Son has Hockey  | Categorical | Nominal | Yes/No
+Productivity (1 - 4)  | Categorical | Ordinal | 1=not at all, 2=fairly, 3=average, 4=highly
+Distance Traveled  | Quantitative | Ratio | Kilometers
+Term of Study | Categorical | Interval | Semester/Year
+
+The second data source is a Combined data set of personalized data collected by current and past students in QMM1002 intermittently over the course of the Fall 2019 – Winter 2024 terms. Details of the types of variables collected along with the level and unit of measure are listed in the table below.
+
+**Variable** | **Type** | **Format**
+:------------- | :------------- | :-------------
+<u>Date</u>  | <u>Identifier</u> | <u>mm/dd/yyyy</u>
+Hours Studying  | Quantitative | Number of Hours
+Term | Categorical | F19, W20, F21, W22, S22, F22, F23, or W24
+
+```{r include=FALSE}
+#read in datasets
+christine<-read.csv(file="Slade, Christine Personalized Data.csv", header=TRUE)
+combined<-read.csv(file="Combined.csv", header=TRUE)
+
+#
+christine.studymean<-mean(christine$Study, na.rm=TRUE)
+christine.studysd<-sd(christine$Study, na.rm=TRUE)
+
+combined.studymean<-mean(combined$Study, na.rm=TRUE)
+combined.studysd<-sd(combined$Study, na.rm=TRUE)
+
+#semester subsets
+F19<-subset(combined, Semester=="F19")
+W20<-subset(combined, Semester=="W20")
+F21<-subset(combined, Semester=="F21")
+W22<-subset(combined, Semester=="W22")
+S22<-subset(combined, Semester=="S22")
+F22<-subset(combined, Semester=="F22")
+F23<-subset(combined, Semester=="F23")
+W24<-subset(combined, Semester=="W24")
+```
+<span style="font-size: 20px;">**Summary Statistics**</span>
+
+The tables below provide summary statistics of my study time over my two semesters compared to the combined data set for other students in the program over all eight of the semesters that were tracked. 
+
+My mean study time is 1.27 hours with a standard deviation of 1.18 hours, compared to the combined student data of 3.64 study hours per day and a standard deviation of 2.36. Comparing my data to the combined student data, I study approximately half as much as other students. As I am a part-time student with a partial course load, this makes sense.
+
+**Data Set** | **Mean** | **Standard Deviation**
+:------------- | :------------- | :------------- 
+Christine | `r mean(christine$Study, na.rm=TRUE)` | `r sd(christine$Study, na.rm=TRUE)`
+All Students | `r mean(combined$Study, na.rm=TRUE)` | `r sd(combined$Study, na.rm=TRUE)`
+
+You can also use summary statistics to compare the amount of time students spend studying categorized by each term. The mean and standard deviation for each semester of combined data is displayed in the table below.
+
+**Term** | **Mean** | **Standard Deviation**
+:------------- | :------------- | :------------- 
+F19 | `r mean(F19$Study)` | `r sd(F19$Study)`
+W20 | `r mean(W20$Study)` | `r sd(W20$Study)`
+F21 | `r mean(F21$Study)` | `r sd(F21$Study)`
+W22 | `r mean(W22$Study)` | `r sd(W22$Study)`
+F22 | `r mean(F22$Study)` | `r sd(F22$Study)`
+S22 | `r mean(S22$Study)` | `r sd(S22$Study)`
+F23 | `r mean(F23$Study)` | `r sd(F23$Study)` 
+W24 | `r mean(W24$Study)` | `r sd(W24$Study)`
+
+For this case study I will only be using the study hours variable to perform my analysis and to answer the following three questions:
+
+- Are there differences in the average study times for students in different semesters?
+
+- Is the distribution of days studied more than 3.13 hours (the average daily study time for students at McGill University) the same for students in the different semesters (or in other words, independent of semester)?
+
+- How does my personal study time change over time (throughout semester 1 and 2)?
+
+To answer these questions I will perform a ANOVA Test to look for differences in average study time because it is quantitative. I will use the Chi-Square Test to see if the distribution of our study hours is independent of semester because this can be categorized and compared to the McGill time of 3.13 hours. As well, Time Series Analysis will be performed to show how my personal study time changed over time because the data was collected over time.
+
+## **<span style="color: #4169E1;">Data Analysis</span>**
+
+### Part 1: ANOVA
+```{r include=FALSE, warning=FALSE}
+#Part 1-1
+#generate the same random numbers
+set.seed(58)
+
+#install.packages("dplyr")
+library(dplyr)
+
+#Part 1-2 and Part 2-1
+#create 4 subsets and take 50 random samples from each
+F19<-sample_n(subset(combined, Semester=="F19"), 50)
+F21<-sample_n(subset(combined, Semester=="F21"), 50)
+F22<-sample_n(subset(combined, Semester=="F22"), 50)
+F23<-sample_n(subset(combined, Semester=="F23"), 50)
+
+#combine samples into one data set
+semester.long<-rbind(F19, F21, F22, F23)
+```
+Using the observational data from the Combined data set, four subsets were created for semesters F19, F21, F22, and F23. From those subsets a random selection of 50 values was taken from each semester in order to conduct a One-Way ANOVA test. I will test the hypothesis that the mean hours studied is the same or different for the four semesters at 𝛼=0.05.
+
+$H_0: \mu_{F_{19}} = \mu_{F_{21}} = \mu_{F_{22}} = \mu_{F_{23}}$
+
+$H_A:$ At least one mean is different
+
+```{r echo=FALSE}
+#Part 1-3
+semester.anova<-aov(Study~Semester, data=semester.long)
+summary(semester.anova)
+```
+$p-value = 0.39 > 0.05 = \alpha$
+
+Based on the results of the ANOVA test the p-value is greater than alpha, therefore I would NOT REJECT the null hypothesis. The interpretation is that there is no significant difference in the means of the study hours for the samples taken of the 4 semesters. This makes sense since I compared the data for the same seasonal semester (Fall) over 4 different years. Students tend to begin a program in September and the specific courses would be the same, with similar classes and assignments.
+
+In order to conduct the ANOVA test, the assumptions and conditions must be checked.
+```{r include=FALSE}
+#Part 1-4
+```
+**1) Independence Assumption:**  
+First, there is **Independence** since the study hours of one student would have no influence on the study hours of another student. Second, there is **Randomization** since the four groups of 50 observations were randomly chosen from the four semesters. Last, there should be **Group Independence** since there is randomization. Therefore, this assumption is met. 
+
+**2) Similar Variance Assumption:**  
+The boxplot displayed below shows very similar variations and has no large skew, so this assumption is met.
+
+```{r echo=FALSE}
+par(bg = "#EEEEEE")
+boxplot(Study~Semester, data=semester.long, col=c("darkolivegreen1","coral","lightskyblue","darkorchid2"), main="Comparison of Study Time (hrs)", ylab="Hours")
+```
+
+**3) Normal Population Assumption:**  
+The histogram below shows a fairly normal, unimodal distribution for the residual values. Therefore this assumption is also met.
+
+```{r echo=FALSE}
+par(bg = "#EEEEEE")
+hist(semester.anova$residuals, main = "Histogram of Residuals", xlab = "Residuals", ylab = "Frequency", col = "gold")
+
+```
+
+To perform a multiple comparison of the mean values I conducted Tukey's HSD. The results are displayed below.
+```{r echo=FALSE}
+#Part 1-5
+TukeyHSD(semester.anova, conf.level = 0.95)
+```
+With all of the p-values being greater than 0.05, this would confirm that I would NOT REJECT the null hypothesis that the mean values are the same. In other words there is no difference in the study time in my sample of students from each semester. One thing I found interesting is the study times for the Fall 2021 semester were not significantly different than the others. 
+
+As seen below in the plot for each of the semesters, there is overlap in the confidence levels, this indicates there is little difference between the study times in the semesters. Since Fall 2021 was on the tail end of the Covid-19 lock down in Canada, I thought with people still being hesitant to go out, students might have spent more time studying in this semester.
+
+As an analytics student, it is interesting to be able to compare the study times of fellow students over the different semesters. With the p-values being all greater than 0.05 this means there is no significant difference in study times between semesters. I think this emphasizes that students in the business analytics program are focused on their studies.
+
+```{r echo=FALSE, warning=FALSE}
+#Part 1-6
+library("ggplot2")
+ggplot(semester.long, aes(Semester, Study, fill=Semester))+
+  stat_summary(fun=mean, geom="bar")+
+  stat_summary(fun.data=mean_cl_normal, geom="errorbar", width=0.2)+
+  labs(title="Results of Study Time")+
+  scale_fill_manual(values = c("darkolivegreen1", "coral", "lightskyblue", "darkorchid2"))+theme(plot.background = element_rect(fill = "#EEEEEE"))
+
+```
+
+### Part 2: Chi-Square Test
+
+I will follow a 4-step procedure to conduct a Chi-Square Test to answer the question: Is the distribution of days studied more than 3.13 hours (the average daily study time for students at McGill University) the same for students in the different semesters (or in other words, independent of semester)?
+
+First, I will state my null and alternative hypothesis:
+
+$H_0:$ The distribution of above and below days is the same across semesters
+
+$H_A:$ The distribution of above and below days is the different across semesters
+
+In the next step I will test the assumptions and conditions to conduct a Chi-Square Test for Independence and Homogeneity.
+
+**1) Counted Data Condition:**  
+Since the data for the categorical variable is a count of the days that are "Above" and "Below" 3.13 study hours per day this condition is met.
+```{r include=FALSE}
+#Part 2-3
+```
+**2) Independence Assumption:**  
+This assumption has been met since the samples were taken randomly and the cells would therefore be independent of each other.
+
+**3) Randomization Condition:**  
+This condition has been met as the samples were generated randomly from the Combined data set.
+
+**4) Expected Cell Frequency/Sample Size Condition:**  
+Based on the table below, this condition is met as all values are above 5.
+```{r include=FALSE}
+#Part 2-2
+#append another variable in the data set to determine if a student studied  
+#more than 3.13 hours or less than 3.13 hours.
+semester.long$studycutoff<-ifelse(semester.long$Study > 3.13, "Yes", "No")
+
+#create a table that counts the days that are 'Above' and 'Below' by semester category
+semester.table<-table(semester.long$studycutoff, semester.long$Semester)
+```
+
+```{r echo=FALSE}
+chisq.test(semester.table)$expected
+```
+Next, the Chi-Square Test is conducted and the p-value is determined. The results are displayed below.
+```{r echo=FALSE}
+#Part 2-2
+#perform a chi-square test
+chisq.test(semester.table)
+```
+
+$p-value = 0.4256 > 0.05 = \alpha$
+
+Since the p-value is greater than 0.05, the decision will be DO NOT REJECT the null hypothesis. There is not enough evidence to suggest that the distribution of days above and below 3.13 study hours differs across semester. We cannot conclude that there is a relationship between semesters and the amount of study time.
+
+```{r include=FALSE}
+study.results<-chisq.test(semester.table)
+```
+
+If I look at the residual values, shown below, all are with the -3 to 3 range. This aligns with the Chi-Square test which stated there were no significant differences in the study times for each semester.
+```{r echo=FALSE}
+study.results$residuals
+```
+
+Evaluating the Mosaic Plot (below) for the residual values, none of the boxes are coloured which means all residuals are between -2 and 2 and none are unusual outliers. Based on the widths of the boxes, there were more days with hours above 3.13 than below. Fall 22 had the most days below the 3.13 study hours and Fall 2019 and 2023 had the least days below 3.13 study hours. In correlation with that result, both Fall 2019 and 2023 had the most days above 3.13 hours and Fall 2022 had the least days above.
+
+```{r echo=FALSE}
+#Part 2-4
+par(bg = "#EEEEEE")
+mosaicplot(semester.table, shade=TRUE, xlab="Above 3.13 hrs", ylab="Semester",
+           main="Mosaic Plot for Study Results Above 3.13 Hours")
+```
+
+The results confirm that the students in the business analytics program are committed to their studies regardless of which semester they are in. Personally, this reflects my own commitment to stay focused on my studies even though Winter 2024 saw some major changes in my personal situation.
+
+
+### Part 3: Time Series Analysis
+
+In this section I will use Time Series Analysis to address the question of how my personal study hours change over time.
+
+I began by plotting the decomposition of the time series for hours studied. Looking at the plots below, I observe the following Time Series Components:
+
+**Trend:** This appears to be stationary as there is not a clear trend.  
+**Seasonality:** There does appear to be some sort of pattern of seasonality. This would make sense since I tend to study more on days when I have class and the information is fresh in my mind and I spend less time studying over the weekends when I spend time with family.  
+**Cyclical:** A cyclical pattern is not present. Since the data I collected is only for 8 months, I do not think there is enough data to identify a cycle.    
+**Irregular:** There are some larger than expect dips and spikes that are irregularities. I believe these can be attributed to the assignment schedule and my personal schedule. The dips would be times when I have a busy work or personal schedule and the spikes are around times when assignments are due.
+```{r include=FALSE, warning=FALSE}
+#Part 3-1
+library(zoo)
+library(forecast)
+library(TTR)
+
+#Get the data into the correct format
+christine$Date <- as.Date(christine$Date,format="%d/%m/%Y")  #Check your format!
+christine.zoo <- zoo(christine[,3],christine[,1]) #remove all columns except study time and set dates to index
+christine.all <- merge(christine.zoo,zoo(,seq(start(christine.zoo),end(christine.zoo),by="day")), all=TRUE) #include all missing dates
+
+#Make a time series with the longest stretch of dates
+christine.ts<-ts(na.contiguous(christine.all), frequency=7)
+christine.ts
+```
+
+```{r echo=FALSE}
+#Part 3-2
+par(bg = "#EEEEEE")
+plot(decompose(christine.ts))
+```
+
+Next, I plotted three moving average models using the values 7, 21, and 30, shown below, and my interpretation of the fits are as follows:  
+The plot for the 7-day moving average provides a shorter term smoothed presentation of the data. The 21-day moving average looks at longer term trends or patterns and has a more clear representation of the data trends over the long term. The 30-day moving average has an even greater smoothing effect on the results over the long term, but with the data changing so rapidly, this might miss some short-term trends.   
+
+```{r echo=FALSE}
+#Part 3-3
+#Find 3 moving average models for hours studied
+christine.ma7<-SMA(christine.ts, 7)
+christine.ma14<-SMA(christine.ts, 21)
+christine.ma21<-SMA(christine.ts, 30)
+
+#par(bg = "#EEEEEE")
+#plot.ts(christine.ts, xlab="Days since January 1, 2023", ylab="Hours Studied", main="Time Series Plot")
+#Plot the moving average model along with the original time series
+par(bg = "#EEEEEE")
+plot.ts(cbind(christine.ts, christine.ma7, christine.ma14, christine.ma21),  plot.type="single", col=c("black", "red", "green", "blue"), xlab="Days", ylab="Hours Studied", main="Christine's Personalized Study Data")
+legend("top", legend=c("Data", "MA-7", "MA-21","MA-30"), col=c("black", "red", "green", "blue"), lty=1, cex=0.50)
+```
+
+```{r include=FALSE}
+##################################################################
+#Function to compute error metrics#
+##################################################################
+ERRORS<-function(data, L){
+  ma.data<-SMA(data, n=L)
+  error<-NULL
+  for (i in 1:length(data)-L){
+    error[i]<-data[i+L]-ma.data[i+L-1]
+  }
+  error.p<-NULL
+  for(i in 1:length(data)-L){
+    error.p[i]<-abs(data[i+L]-ma.data[i+L-1])/abs(data[i+L])
+  }
+  MSE<-mean(error^2)
+  MAD<-mean(abs(error))
+  MAPE<-mean(error.p)*100
+  error.df<-data.frame(errors=c(MSE, MAD, MAPE), row.names=c("MSE", "MAD", "MAPE"))
+  return(error.df)
+}
+##################################################################
+```
+
+Based on the MSE and MAD values in the table below, the SMA model for MA21 has the smallest error out of the three moving average models (MA7, MA21, MA30). Therefore, I would conclude that the MA21 model provides the most accurate prediction for my data. It can be noted that since my data does have zero values (days where I did not study), the MAPE error calculation can not be used.  
+
+```{r echo=FALSE}
+#Part 3-3
+e7<-ERRORS(christine.ts, 7)
+e21<-ERRORS(christine.ts, 21)
+e30<-ERRORS(christine.ts, 30)
+christine.errors<-cbind(e7, e21, e30)
+colnames(christine.errors)<-c("MA7","MA21","MA30")
+christine.errors
+```
+
+The time series plot for my hours studied appears to be stationary with no regular patterns, therefore the best exponential smoothing model would be the Simple model.
+
+
+```{r echo=FALSE, warning=FALSE}
+library(forecast)
+christine.ts<-ts(na.contiguous(christine.all), frequency=7)
+christine.ses<-HoltWinters(christine.ts, beta=FALSE, gamma=FALSE)
+```
+
+Below is the plot of the Simple Exponential Smoothing model for my time series data. Since the $\alpha$ for my smoothing model is fairly low at `r christine.ses$alpha`, the SES model is smooth and reacts less quickly to the changes in study hours. 
+
+```{r echo=FALSE}
+par(bg = "#EEEEEE")
+plot.ts(cbind(christine.ts, christine.ses$fitted[, 1]),col=c("black","red"),
+        plot.type="single", ylab="Hours", xlab="Days", main="SES Model for Study Hour Data")
+legend("top", legend=c("data", "Optimal SES"),
+       col=c("black", "red"),lty=1, cex=0.5)
+```
+Below is the  plot with the forecasts for the next five days.
+
+This forecast makes sense to me, especially knowing that I have spent approximately 11 hours working on assignments over the last three days, but will not be able to spend any time over the next 3 days.
+
+```{r echo=FALSE}
+par(bg = "#EEEEEE")
+plot(forecast(christine.ses, h=5))
+```
+
+## **<span style="color: #4169E1;">Conclusion</span>**
+
+Performing the ANOVA Test, the Chi-Square Test, and the Time Series Analysis provided the following conclusions.
+
+The ANOVA results to compare the average study time for the Fall semesters of 2019, 2021, 2022, and 2023, shows there is no significant difference in the mean study hours between the four semesters compared.
+
+The results of the Chi-Square Test clearly indicate there was not enough evidence that the distribution of days above and below 3.13 study hours was different across semesters and I was not able to conclude that there was a relationship between semesters and the amount of study time. 
+
+Looking at how my personal study hours changed over time using the Time Series Analysis, I can say that there didn't appear to be any change. There was no increasing trend in my hours and the smoothing model suggested that I had a steady hour to an hour and a half of average daily study time.
+
+After completing the case study, I've learned that being a part-time student does not mean that I am able to spend more time studying when compared to full time students. I think it would be interesting to compare the weight of study time to course loads between full and part time students to see if there would be a difference in those results.
